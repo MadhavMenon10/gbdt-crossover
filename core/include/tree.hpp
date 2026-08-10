@@ -2,8 +2,9 @@
 #define TREEINFER_TREE_H
 #include <cstdint>
 #include <limits>
+#include <vector>
 
-namespace treeinfer {
+namespace TreeInfer {
     /**
      * @brief Represents one node in a decision tree. It can either be a split node or a leaf node
      * It is kept as a single flat type rather than be pointer-based to mirror XGBoost's own array-based node format
@@ -24,9 +25,30 @@ namespace treeinfer {
         /// XGBoost has a default max tree depth of 6 so we use the numeric limit of std::uint32_t as it is overkill, even
         /// for an unusually tree that has say 2 million nodes. Declared as static so that it is a property of Node
         /// but not a part of each instance of Node that is created
-        ///
         static constexpr std::uint32_t k_no_child {std::numeric_limits<std::uint32_t>::max()};  
         bool is_leaf() const {return (left_child == k_no_child && right_child == k_no_child);}
+    };
+
+    /**
+     * @brief Represents one tree in the ensemble. 
+     * 
+     */
+    class Tree {
+        public:
+            /// @brief Takes tree_nodes by value rather than const&, so that the common case where a caller passing a temporary during parsing costs less as only the move constructor is called and 0 Node objects are copied. const& on the other hand would have copied every node
+            /// @param tree_nodes The nodes used to construct the tree
+            /// @param root_index The index of the root of the tree (typically 0 but may change for non XGBoost formats)
+            Tree(std::vector<Node> tree_nodes, std::uint32_t root_index);
+            /// @brief Returns the nodes in the tree
+            /// @return const std::vector<Node>&
+            inline const std::vector<Node>& nodes() const {return tree_nodes_;}
+            /// @brief Returns the root of the Tree
+            /// @return Node
+            inline Node root() const {return tree_nodes_[root_index_];}
+        private:
+            /// @brief Stores all the nodes in the tree in a vector, mirrors XGBoost's array node structure
+            std::vector<Node> tree_nodes_;
+            std::uint32_t root_index_;
     };
 }
 
