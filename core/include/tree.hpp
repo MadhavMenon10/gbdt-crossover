@@ -35,7 +35,7 @@ namespace TreeInfer {
      */
     class Tree {
         public:
-            /// @brief Takes tree_nodes by value rather than const&, so that the common case where a caller passing a temporary during parsing costs less as only the move constructor is called and 0 Node objects are copied. const& on the other hand would have copied every node
+            /// @brief Constructs a tree. Takes tree_nodes by value rather than const&, so that the common case where a caller passing a temporary during parsing costs less as only the move constructor is called and 0 Node objects are copied. const& on the other hand would have copied every node
             /// @param tree_nodes The nodes used to construct the tree
             /// @param root_index The index of the root of the tree (typically 0 but may change for non XGBoost formats)
             Tree(std::vector<Node> tree_nodes, std::uint32_t root_index);
