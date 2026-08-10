@@ -1,4 +1,4 @@
-add_library(core STATIC src/tree.cpp)
+add_library(core STATIC src/tree.cpp src/model.cpp)
 target_include_directories(core PUBLIC include)
 target_compile_features(core PUBLIC cxx_std_23)
 target_compile_options(core PRIVATE -Wall -Wextra -pedantic)
