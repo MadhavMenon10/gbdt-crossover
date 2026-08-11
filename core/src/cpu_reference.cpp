@@ -1,0 +1,33 @@
+#include "cpu_reference.hpp"
+#include "sample.hpp"
+#include "tree.hpp"
+#include <cmath>
+#include <stdexcept>
+
+namespace {
+    float traverse_tree(const TreeInfer::Tree& tree, const TreeInfer::Sample& sample) {
+        auto curr_node {tree.root()};
+        while (!curr_node.is_leaf()) {
+            auto curr_value {sample.values[curr_node.feature_index]};
+            if (std::isnan(curr_value)) {
+                curr_node = (curr_node.default_left ? tree.nodes()[curr_node.left_child] : tree.nodes()[curr_node.right_child]);
+            } else if (curr_value >= curr_node.threshold) {
+                curr_node = tree.nodes()[curr_node.right_child];
+            } else {
+                curr_node = tree.nodes()[curr_node.left_child];
+            }
+        }
+        return curr_node.value;
+    }
+}
+
+float TreeInfer::predict(const Model& model, const Sample& sample) {
+    if (sample.values.size() != model.num_features()) {
+        throw std::invalid_argument("The number of values in the sample do not match the number of features in the model");
+    }
+    auto total {model.base_score()};
+    for (const auto& tree : model.trees()) {
+        total += traverse_tree(tree, sample);
+    }
+    return total;
+}
