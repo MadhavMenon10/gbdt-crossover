@@ -2,6 +2,7 @@
 #define TREEINFER_CPU_REFERENCE_H
 #include "model.hpp"
 #include "sample.hpp"
+#include <vector>
 
 
 namespace TreeInfer {
@@ -12,11 +13,11 @@ namespace TreeInfer {
      * 
      * @param model The model we want to score our sample from
      * @param sample The set of feature values we want to score
-     * @return float 
+     * @return std::vector<float> 
      * @throws std::invalid_argument Throws if the number of features in the model does not correspond to the 
      * number of feature values in the sample.
      */
-    float predict(const Model& model, const Sample& sample);
+    std::vector<float> predict(const Model& model, const Sample& sample);
 }
 
 

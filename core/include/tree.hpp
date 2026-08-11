@@ -30,7 +30,7 @@ namespace TreeInfer {
         static constexpr std::uint32_t k_no_child {std::numeric_limits<std::uint32_t>::max()};  
         bool is_leaf() const {return (left_child == k_no_child && right_child == k_no_child);}
     };
-
+    
     /**
      * @brief Represents one tree in the ensemble. 
      * 
@@ -40,17 +40,25 @@ namespace TreeInfer {
             /// @brief Constructs a tree. Takes tree_nodes by value rather than const&, so that the common case where a caller passing a temporary during parsing costs less as only the move constructor is called and 0 Node objects are copied. const& on the other hand would have copied every node
             /// @param tree_nodes The nodes used to construct the tree
             /// @param root_index The index of the root of the tree (typically 0 but may change for non XGBoost formats)
-            Tree(std::vector<Node> tree_nodes, std::uint32_t root_index);
+            /// @param class_index The index of the class the tree belongs to
+            /// @throws std::out_of_range Throws if the index of the root is greater than the number of nodes in the tree
+            Tree(std::vector<Node> tree_nodes, std::uint32_t root_index, std::uint16_t class_index);
             /// @brief Returns the nodes in the tree
             /// @return const std::vector<Node>&
             inline const std::vector<Node>& nodes() const {return tree_nodes_;}
             /// @brief Returns the root of the Tree
             /// @return Node
             inline Node root() const {return tree_nodes_[root_index_];}
+            /// @brief Returns which class the tree belongs to 
+            /// @return std::uint16_t
+            inline std::uint16_t class_index() const {return class_index_;}
         private:
             /// @brief Stores all the nodes in the tree in a vector, mirrors XGBoost's array node structure
             std::vector<Node> tree_nodes_;
+            /// @brief Stores the root index of the tree
             std::uint32_t root_index_;
+            /// @brief Stores the class the tree belongs to
+            std::uint16_t class_index_;
     };
 }
 

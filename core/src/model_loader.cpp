@@ -1,11 +1,11 @@
 #include "model_loader.hpp"
 #include "tree.hpp"
 #include <fstream>
-#include <nlohmann/json.hpp>
+#include "json.hpp"
 #include <charconv>
 
 namespace {
-    TreeInfer::Tree generate_tree(const nlohmann::json& data) {
+    TreeInfer::Tree generate_tree(const nlohmann::json& data, std::uint16_t class_index) {
         std::vector<TreeInfer::Node> tree_vector;
         auto left_children {data["left_children"]};
         auto right_children {data["right_children"]};
@@ -31,7 +31,7 @@ namespace {
             node.default_left = default_left_i;
             tree_vector.push_back(node);
         }
-        return Tree(std::move(tree_vector), 0); // XGBoost defaults root index to be 0
+        return TreeInfer::Tree(std::move(tree_vector), 0, class_index); // XGBoost defaults root index to be 0
     }
 }
 
@@ -48,15 +48,28 @@ TreeInfer::Model TreeInfer::load_model(const std::filesystem::path& file_path) {
         throw std::invalid_argument("num_features could not be extracted from the JSON file");
     }
     std::string base_score_str{data["learner"]["learner_model_param"]["base_score"]};
-    float base_score;
-    auto base_score_result {std::from_chars(base_score_str.data(), base_score_str.data() + base_score_str.length(), base_score, std::chars_format::general)};
-    if (base_score_result.ec != std::errc{}) {
-        throw std::invalid_argument("base_score could not be extracted from the JSON");
+    auto base_score_json{nlohmann::json::parse(base_score_str)};
+    std::vector<float> base_scores;
+    for (const auto& val : base_score_json) {
+        base_scores.push_back(val);
+    }
+    std::string num_classes_str{data["learner"]["learner_model_param"]["num_class"]};
+    std::uint16_t num_classes;
+    auto num_classes_result {std::from_chars(num_classes_str.data(), num_classes_str.data() + num_classes_str.length(), num_classes)};
+    if (num_classes_result.ec != std::errc{}) {
+        throw std::invalid_argument("num_classes could not be extracted from the JSON file");
+    }
+    // XGBoost stores binary classes with 0 so we update it to 1 to maintain intuitiveness
+    if (num_classes == 0) {
+        num_classes = 1;
     }
     std::vector<Tree> trees;
-    for (const auto& tree_json : data["learner"]["gradient_booster"]["model"]["trees"]) {
-        trees.push_back(generate_tree(tree_json));
+    auto tree_info {data["learner"]["gradient_booster"]["model"]["tree_info"]};
+    auto tree_data {data["learner"]["gradient_booster"]["model"]["trees"]};
+    for (size_t i {}; i < tree_data.size(); ++i) {
+        std::uint16_t class_index {tree_info[i]};
+        trees.push_back(generate_tree(tree_data[i], class_index));
     }
-    Model model(std::move(trees), num_features, base_score);
+    Model model(std::move(trees), num_features, num_classes, std::move(base_scores));
     return model;
 }

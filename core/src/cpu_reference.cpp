@@ -21,13 +21,13 @@ namespace {
     }
 }
 
-float TreeInfer::predict(const Model& model, const Sample& sample) {
+std::vector<float> TreeInfer::predict(const Model& model, const Sample& sample) {
     if (sample.values.size() != model.num_features()) {
         throw std::invalid_argument("The number of values in the sample do not match the number of features in the model");
     }
-    auto total {model.base_score()};
+    std::vector<float> totals {model.base_scores()};
     for (const auto& tree : model.trees()) {
-        total += traverse_tree(tree, sample);
+        totals[tree.class_index()] += traverse_tree(tree, sample);
     }
-    return total;
+    return totals;
 }
