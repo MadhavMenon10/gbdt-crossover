@@ -2,6 +2,7 @@
 #define TREEINFER_DENSE_TREE_H
 #include <cstdint>
 #include <cstddef>
+#include <vector>
 
 
 namespace TreeInfer{
@@ -34,6 +35,31 @@ namespace TreeInfer{
     inline size_t right_child_index(size_t index) {
         return 2 * index + 2;
     }
+
+    /**
+     * @brief Represents a tree made of dense nodes that we pass into the GPU
+     * 
+     */
+    class DenseTree {
+        public:
+            DenseTree(std::vector<DenseNode> dense_tree_nodes, std::uint16_t max_depth);
+            /// @brief Returns the root node of the dense tree
+            /// @return DenseNode
+            inline DenseNode root() const {return dense_tree_nodes_[0];}
+            /// @brief Returns the nodes in the dense tree
+            /// @return const std::vector<DenseNode>&
+            inline const std::vector<DenseNode>& nodes() const {return dense_tree_nodes_;}
+            /// @brief Returns the index of the root node
+            /// @return std::uint32_t
+            inline std::uint32_t root_index() const {return 0;}
+            inline std::uint16_t max_depth() const {return max_depth_;}
+        private:
+            /// @brief Stores the dense nodes
+            std::vector<DenseNode> dense_tree_nodes_;
+            /// @brief Stores the maximum depth of the tree
+            std::uint16_t max_depth_;
+
+    };
 }
 
 

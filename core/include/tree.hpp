@@ -52,6 +52,9 @@ namespace TreeInfer {
             /// @brief Returns which class the tree belongs to 
             /// @return std::uint16_t
             inline std::uint16_t class_index() const {return class_index_;}
+            /// @brief Returns the index of the root node
+            /// @return std::uint32_t
+            inline std::uint32_t root_index() const {return root_index_;}
         private:
             /// @brief Stores all the nodes in the tree in a vector, mirrors XGBoost's array node structure
             std::vector<Node> tree_nodes_;
