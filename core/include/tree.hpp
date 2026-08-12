@@ -15,7 +15,7 @@ namespace TreeInfer {
         std::uint32_t left_child;     
         /// @brief Stores the index of the right child of the node. Stored as uint32_t as this gives us ~2000x headroom over a tree with 2 million nodes
         std::uint32_t right_child;   
-        /// @brief Stores the index of a given sample's feature vector. 
+        /// @brief Stores the index of a given sample's feature vector 
         std::uint16_t feature_index; 
         /// @brief  Stores whether we traverse to the left node or right node in the event a sample has a missing feature
         bool default_left;
