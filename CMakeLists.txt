@@ -4,5 +4,6 @@ if(APPLE)
 endif()
 project(gbdt-crossover LANGUAGES CXX)
 add_subdirectory(core)
+add_subdirectory(apps)
 
 
