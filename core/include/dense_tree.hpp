@@ -37,8 +37,10 @@ namespace TreeInfer{
     }
 
     /**
-     * @brief Represents a tree made of dense nodes that we pass into the GPU
-     * 
+     * @brief Represents a tree made of dense nodes that we pass into the GPU. 
+     * We need the regular Tree and Node class as DenseTree and DenseNode cannot directly be constructed
+     * from XGBoost. Tree and Node are not optimised for the GPU as the nodes live in an arbitrary order in memory
+     * and they are all of different depth
      */
     class DenseTree {
         public:
