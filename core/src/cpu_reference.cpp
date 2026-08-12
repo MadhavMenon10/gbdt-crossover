@@ -1,6 +1,7 @@
 #include "cpu_reference.hpp"
 #include "sample.hpp"
 #include "tree.hpp"
+#include "dense_tree.hpp"
 #include <cmath>
 #include <stdexcept>
 
@@ -15,6 +16,26 @@ namespace {
                 curr_node = tree.nodes()[curr_node.right_child];
             } else {
                 curr_node = tree.nodes()[curr_node.left_child];
+            }
+        }
+        return curr_node.value;
+    }
+    float traverse_dense_tree(const TreeInfer::DenseTree& tree, const TreeInfer::Sample& sample) {
+        auto curr_node {tree.root()};
+        auto curr_idx {tree.root_index()};
+        while (!curr_node.is_leaf) {
+            auto curr_value {sample.values[curr_node.feature_index]};
+            auto left_idx {TreeInfer::left_child_index(curr_idx)};
+            auto right_idx {TreeInfer::right_child_index(curr_idx)};
+            if (std::isnan(curr_value)) {
+                curr_idx = (curr_node.default_left ? left_idx : right_idx);
+                curr_node = (curr_node.default_left ? tree.nodes()[left_idx] : tree.nodes()[right_idx]);
+            } else if (curr_value >= curr_node.threshold) {
+                curr_node = tree.nodes()[right_idx];
+                curr_idx = right_idx;
+            } else {
+                curr_node = tree.nodes()[left_idx];
+                curr_idx = left_idx;
             }
         }
         return curr_node.value;
