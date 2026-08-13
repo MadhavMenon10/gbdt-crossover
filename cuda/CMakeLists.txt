@@ -1,5 +1,5 @@
 enable_language(CUDA)
-add_library(cuda STATIC src/traverse_dense_tree_device.cu)
+add_library(cuda STATIC src/tree_traversal_device.cu)
 target_include_directories(cuda PUBLIC include)
 target_include_directories(cuda PUBLIC ${CMAKE_SOURCE_DIR}/core/include)
 target_compile_features(cuda PUBLIC cxx_std_23)
