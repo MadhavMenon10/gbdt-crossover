@@ -8,11 +8,15 @@ std::vector<float> TreeInfer::launch_dense_tree_traversal_kernel(const DenseMode
     size_t nodes_per_tree {dense_model.dense_trees()[0].num_nodes()};
     std::vector<DenseNode> tree_nodes {};
     for (const auto& dense_tree : dense_model.dense_trees()) {
+        // Accumulates all the nodes across every dense tree in one vector
         tree_nodes.insert(tree_nodes.end(), dense_tree.nodes().begin(), dense_tree.nodes().end());
+
     }
+
     size_t features_per_sample {samples[0].values.size()};
     std::vector<float> feature_values {};
     for (const auto& sample : samples) {
+        // Accumulates all the feature values across every sample in one vector
         feature_values.insert(feature_values.end(), sample.values.begin(), sample.values.end());
     }
     DenseNode* dense_nodes_d {nullptr};
@@ -29,7 +33,9 @@ std::vector<float> TreeInfer::launch_dense_tree_traversal_kernel(const DenseMode
     size_t block_size {256};
     TreeInfer::traverse_dense_tree_device<<<(num_output_elements + block_size - 1) / block_size, block_size>>>(dense_nodes_d, feature_values_d, nodes_per_tree, num_samples, num_trees, features_per_sample, output_array_d);
     std::vector<float> output_vector(num_output_elements);
+    // Move output of the kernel back into the output vector
     CUDAUtils::check_cuda_error(cudaMemcpy(output_vector.data(), output_array_d, sizeof(float) * num_output_elements, cudaMemcpyDeviceToHost), "Move output elements into the output vector");
+    // Free pointers
     CUDAUtils::check_cuda_error(cudaFree(dense_nodes_d), "Free dense_nodes_d");
     CUDAUtils::check_cuda_error(cudaFree(feature_values_d), "Free feature_values_d");
     CUDAUtils::check_cuda_error(cudaFree(output_array_d), "Free output_array_d");

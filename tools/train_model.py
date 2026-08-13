@@ -99,6 +99,20 @@ def inject_missing_values(test_df: pd.DataFrame, num_rows: int, num_features_eac
         out.loc[r, cols] = np.nan
     return out
 
+def generate_sweep_models(clf, round_counts, output_dir):
+    """Slices the trained booster into ten smaller ensembles by boosting round, and saves each as its own model file.
+    Our generated data has 3 classes and we get one tree per class so the round counts below produce tree counts roughly from 100 to 1000 in increments of 100
+    Args:
+        clf (XGBClassifier): scikit-learn wrapper
+        round_counts (list[int]): List of boosting-round counts to slice at [33, 67, 100, 133, 167, 200, 233, 267, 300, 333]
+        output_dir (str): The directory path sliced model files get written to
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    booster = clf.get_booster()
+    for count in round_counts:
+        sliced = booster[0:count] 
+        sliced.save_model(f"{output_dir}/model_{count}rounds.json")
+        
 
 def main():
     os.makedirs("ground_truth", exist_ok=True)
