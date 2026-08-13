@@ -2,6 +2,7 @@
 #define TREEINFER_LAUNCH_TREE_TRAVERSAL_DEVICE_CUH
 #include "dense_tree.hpp"
 #include "sample.hpp"
+#include "dense_model.hpp"
 #include <vector>
 
 namespace TreeInfer {
