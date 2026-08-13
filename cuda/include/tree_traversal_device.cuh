@@ -1,6 +1,7 @@
 #ifndef TREEINFER_TREE_TRAVERSAL_DEVICE_CUH
 #define TREEINFER_TREE_TRAVERSAL_DEVICE_CUH
 #include "dense_tree.hpp"
+#include <cstddef>
 
 namespace TreeInfer {
     /**
