@@ -1,4 +1,4 @@
-add_library(core STATIC src/tree.cpp src/model.cpp src/model_loader.cpp src/cpu_reference.cpp src/dense_tree.cpp src/dense_builder.cpp)
+add_library(core STATIC src/tree.cpp src/model.cpp src/model_loader.cpp src/cpu_reference.cpp src/dense_tree.cpp src/dense_builder.cpp dense_model.cpp)
 ###
 #Used to process JSON files using nlohmann/json as C++ does not provide native JSON support
 include(FetchContent)
