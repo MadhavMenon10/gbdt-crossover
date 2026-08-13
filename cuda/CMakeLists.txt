@@ -8,6 +8,7 @@ add_library(cuda_utils INTERFACE)
 target_include_directories(cuda_utils INTERFACE ${cuda_utils_SOURCE_DIR})
 ###
 target_link_libraries(cuda PRIVATE cuda_utils)
+target_link_libraries(cuda PUBLIC CUDA::cudart)
 target_include_directories(cuda PUBLIC include)
 target_include_directories(cuda PUBLIC ${CMAKE_SOURCE_DIR}/core/include)
 target_compile_features(cuda PUBLIC cxx_std_23)
