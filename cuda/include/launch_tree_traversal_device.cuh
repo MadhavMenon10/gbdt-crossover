@@ -12,7 +12,7 @@ namespace TreeInfer {
      * @param samples The vector of samples our model checks against
      * @return std::vector<float>
     **/
-    std::vector<float> launch_dense_tree_traversal_kernel(const DenseModel& dense_model, const std::vector<TreeInfer::Sample>& samples)
+    std::vector<float> launch_dense_tree_traversal_kernel(const DenseModel& dense_model, const std::vector<TreeInfer::Sample>& samples);
 
 }
 
