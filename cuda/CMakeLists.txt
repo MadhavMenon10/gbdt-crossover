@@ -1,4 +1,5 @@
 enable_language(CUDA)
+find_package(CUDAToolkit REQUIRED)
 add_library(cuda STATIC src/tree_traversal_device.cu src/launch_tree_traversal_device.cu)
 #Used to bring in my CUDA Utils file
 include(FetchContent)
