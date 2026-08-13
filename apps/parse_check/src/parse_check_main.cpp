@@ -4,10 +4,14 @@
 #include "rapidcsv.h"
 #include "cpu_reference.hpp"
 #include "dense_builder.hpp"
+#include "dense_model.hpp"
 #include <iostream>
 #include <filesystem>
 #include <vector>
 #include <cmath>
+#ifdef BUILD_CUDA
+#include "launch_tree_traversal_device.cuh"
+#endif
 
 namespace {
     void check_row(const TreeInfer::Model& model, const TreeInfer::Sample& sample, const std::vector<float>& expected_margins, size_t row) {
@@ -34,6 +38,22 @@ namespace {
             }
         }
     }
+    void compare_device_dense_traversal(const std::vector<float>& device_trav_dense_result, const TreeInfer::Model& model, const std::vector<TreeInfer::Sample>& samples) {
+        // illustrative only — not exact syntax to copy verbatim
+        float eps {1e-4f};
+        for (size_t sample_idx {}; sample_idx < samples.size(); ++sample_idx) {
+            for (size_t tree_idx {}; tree_idx < model.trees().size(); ++tree_idx) {
+                size_t global_id {sample_idx * model.trees().size() + tree_idx};
+                float gpu_result {device_trav_dense_result[global_id]};
+                float cpu_result {TreeInfer::traverse_tree(model.trees()[tree_idx], samples[sample_idx])};
+                if (std::abs(gpu_result - cpu_result) > eps) {
+                    std::cerr << "GPU/CPU mismatch at sample " << sample_idx << ", tree " << tree_idx << "\n";
+                    std::cerr << "GPU result: " << gpu_result << "\n";
+                    std::cerr << "CPU result: " << cpu_result << "\n";
+                }
+            }
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -48,14 +68,21 @@ int main(int argc, char* argv[]) {
         std::uint16_t max_depth {static_cast<std::uint16_t>(std::stoi(argv[3]))};
         // Avoids throwing on empty cells which inject_missing_values deliberately creates
         rapidcsv::Document csv_doc(csv_path.string(), rapidcsv::LabelParams(), rapidcsv::SeparatorParams(), rapidcsv::ConverterParams(true));
+        std::vector<TreeInfer::Sample> samples;
         for (size_t row {}; row < csv_doc.GetRowCount(); ++row) {
             std::vector<float> csv_row {csv_doc.GetRow<float>(row)};
             std::vector<float> feature_values(csv_row.begin(), csv_row.begin() + model.num_features());
             std::vector<float> expected_margins(csv_row.begin() + model.num_features(), csv_row.end());
             TreeInfer::Sample sample {std::move(feature_values)};
+            samples.push_back(sample);
             check_row(model, sample, expected_margins, row);
             compare_dense_tree(model, sample, row, max_depth);
         }
+        #ifdef BUILD_CUDA
+        TreeInfer::DenseModel dense_model(model, max_depth);
+        std::vector<float> dense_device_trav_result {TreeInfer::launch_dense_tree_traversal_kernel(dense_model, samples)};
+        compare_device_dense_traversal(dense_device_trav_result, model, samples);
+        #endif
     } catch (const std::exception& e) {
         std::cerr << e.what() << "\n";
         return 1;
