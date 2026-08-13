@@ -64,6 +64,7 @@ namespace TreeInfer{
             /// @brief Returns the max depth of the dense tree
             /// @return std::uint16_t
             inline std::uint16_t max_depth() const {return max_depth_;}
+            inline size_t num_nodes() const {return (static_cast<size_t>(1) << (max_depth + 1)) - 1;}
         private:
             /// @brief Stores the dense nodes
             std::vector<DenseNode> dense_tree_nodes_;
