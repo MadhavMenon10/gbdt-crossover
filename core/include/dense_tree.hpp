@@ -1,5 +1,12 @@
 #ifndef TREEINFER_DENSE_TREE_H
 #define TREEINFER_DENSE_TREE_H
+// We need this so that left_child_index and right_child_index compile on both the host and device
+#ifdef __CUDACC__
+#define TREEINFER_HOST_DEVICE __host__ __device__
+#else
+#define TREEINFER_HOST_DEVICE
+#endif
+
 #include <cstdint>
 #include <cstddef>
 #include <vector>
@@ -26,13 +33,13 @@ namespace TreeInfer{
     /// @brief Returns the index of the left child of a dense node
     /// @param index 
     /// @return size_t
-    inline size_t left_child_index(size_t index) {
+    TREEINFER_HOST_DEVICE inline size_t left_child_index(size_t index) {
         return 2 * index + 1;
     }
     /// @brief Returns the index of the right child of a dense node
     /// @param index 
     /// @return size_t
-    inline size_t right_child_index(size_t index) {
+    TREEINFER_HOST_DEVICE inline size_t right_child_index(size_t index) {
         return 2 * index + 2;
     }
 
@@ -54,6 +61,8 @@ namespace TreeInfer{
             /// @brief Returns the index of the root node
             /// @return std::uint32_t
             inline std::uint32_t root_index() const {return 0;}
+            /// @brief Returns the max depth of the dense tree
+            /// @return std::uint16_t
             inline std::uint16_t max_depth() const {return max_depth_;}
         private:
             /// @brief Stores the dense nodes
