@@ -22,7 +22,13 @@
 
 namespace {
     TreeInfer::TrialResults run_batch_trials_device(const TreeInfer::DenseModel& dense_model, const rapidcsv::Document& sample_pool, size_t batch_size, size_t num_trials) {
-        // This section randomly chooses samples 
+        /*
+         * Draws a fixed, random subset of size batch_size from the sample pool once before the
+         * trial loop starts, using the same subset for every one of the num_trials repeated runs.
+         * This is deliberate: repeated trials exist to mitigate timing noise
+         * (OS scheduling jitter, thermal drift, etc.), and that only works if the input is held
+         * constant across trials
+         */
         std::vector<size_t> indices(sample_pool.GetRowCount()); // Vector of indices we can randomly sample from
         std::iota(indices.begin(), indices.end(), 0); // Fills it in sequentially
         std::mt19937 random_engine {42};
@@ -40,7 +46,18 @@ namespace {
         }
         return trial_results;
     }
+
     std::map<size_t, TreeInfer::TrialResults> coarse_run_device(const TreeInfer::DenseModel& dense_model, const rapidcsv::Document& sample_pool, size_t num_trials) {
+        /*
+         * Uses a geometric batch-size sequence (1, 2, 4, 8, 16, 32, 64, 100) rather than linear
+         * spacing. Geometric spacing places a point at every doubling in the low-batch region,
+         * which is exactly where the curve changes fastest due as calling overhead (H2D, launch,
+         * D2H) dominates most heavily there.
+         * Linear spacing would waste resolution in that region and under-sample it, while over-
+         * sampling the flatter, more predictable high-batch region for no benefit.
+         * The sequence caps at 100 because that's large enough to comfortably saturate even our
+         * smallest ensemble (~99 trees) into clearly compute-dominant territory.
+         */
         std::map<size_t, TreeInfer::TrialResults> timing_map;
         std::vector<size_t> coarse_batch_size {1, 2, 4, 8, 16, 32, 64, 100};
         for (auto batch_size : coarse_batch_size) {
@@ -49,7 +66,21 @@ namespace {
         }
         return timing_map;
     }
+
     std::optional<std::pair<size_t, size_t>> find_bracket_device(const std::map<size_t, TreeInfer::TrialResults>& timing_map) {
+        /*
+         * Locates the point where kernel execution time overtakes combined transfer time
+         * (kernel_median > h2d_median + d2h_median), using each stage's median across the coarse
+         * pass's trials. This measures the point where most of otal latency stops being spent on overhead and 
+         * transfer, and starts being spent on actual computation.
+         * This Walks the coarse points in ascending batch-size order (guaranteed by std::map's sorted
+         * keys) and returns the pair of adjacent batch sizes where the condition first flips from
+         * false to true i.e. the interval where the dense pass should search.
+         * Returning std::nullopt possible as it means the
+         * transition happened either below batch=1 or above batch=100, outside the coarse range.
+         * Large ensembles in particular may already be past the transition at the very first
+         * coarse point. main() logs this per ensemble size.
+         */
         size_t prev_batch_size {0};
         bool prev_condition {false};
         for (const auto& [batch_size, trial_result] :  timing_map) {
@@ -66,12 +97,29 @@ namespace {
         return std::nullopt;
     }
     void dense_run_device(const TreeInfer::DenseModel& dense_model, const rapidcsv::Document& sample_pool, size_t num_trials, size_t lower_bound, size_t upper_bound, std::map<size_t, TreeInfer::TrialResults>& timing_map) {
-        for (size_t batch_size {lower_bound + 1}; batch_size < upper_bound; ++batch_size) { // So we don't overwrite at lower_bound and upper_bound
+        /*
+         * Runs the dense pass with every integer batch size strictly between lower_bound and
+         * upper_bound. The goal is to pin the transition down to the exact
+         * batch size.
+         *
+         * lower_bound and upper_bound are skipped because they were already measured in the coarse
+         * pass and already have real entries in timing_map; re-running them would just spend GPU
+         * time re-measuring two points we already have data for.
+         */
+        for (size_t batch_size {lower_bound + 1}; batch_size < upper_bound; ++batch_size) { // Avoids boundary points so we don't overwrite at lower_bound and upper_bound
             TreeInfer::TrialResults trial_result {run_batch_trials_device(dense_model, sample_pool, batch_size, num_trials)};
             timing_map[batch_size] = trial_result;
         }
     }
     void write_results(const std::filesystem::path& output_path, size_t ensemble_size, const std::map<size_t, TreeInfer::TrialResults>& timing_map) {
+        /*
+         * Appends timing_map's rows to the results CSV right after that
+         * model's sweep (coarse plus dense if a bracket was found) completes. Writes incrementally
+         * rather than accumulating all ten models' results and writing once at the end because a full
+         * sweep across ten ensemble sizes is a long-running program, and if it crashes partway
+         * through (which it can since I'm SSHing into a GPU), 
+         * incremental writes mean only the current model's data is lost, not every model that already finished successfully.
+         */
         bool file_exists {std::filesystem::exists(output_path)};
         std::ofstream out_file(output_path, std::ios::app);
         if (!file_exists) {
@@ -84,6 +132,13 @@ namespace {
         }
     }
     std::map<size_t, TreeInfer::TrialResults> run_sweep(const TreeInfer::DenseModel& dense_model, const rapidcsv::Document& sample_pool, size_t num_trials) {
+        /*
+         * Orchestrates the full two-pass sweep for one ensemble size: runs the coarse pass across
+         * the fixed geometric batch-size list, then uses find_bracket_device to locate where the
+         * kernel-overtakes-transfer transition happens within that coarse data. If a bracket is
+         * found, runs the dense pass to pin the transition down to the exact integer batch size.
+         * If no bracket is found, logs it and skips the dense pass entirely
+         */
         std::map<size_t, TreeInfer::TrialResults> timing_map {coarse_run_device(dense_model, sample_pool, num_trials)};
         std::optional<std::pair<size_t, size_t>> bracket {find_bracket_device(timing_map)};
         if (bracket.has_value()) {
