@@ -4,15 +4,19 @@
 #include "sample.hpp"
 #include "dense_model.hpp"
 #include <vector>
+#include <tuple>
 
 namespace TreeInfer {
     /**
-     * @brief Launches the traverse_dense_tree_device kernel from the host
+     * @brief Launches the traverse_dense_tree_device kernel from the host, returns the output and the time it takes to:
+     * 1. Copy data from host to device
+     * 2. Launch the kernel
+     * 3. Copy data from device to host
      * @param dense_model The ensemble of dense trees
      * @param samples The vector of samples our model checks against
-     * @return std::vector<float>
+     * @return std::tuple<std::vector<float>, float, float, float> [traversal_results, h2d_time, kernel_execution, d2h_time]
     **/
-    std::vector<float> launch_dense_tree_traversal_kernel(const DenseModel& dense_model, const std::vector<TreeInfer::Sample>& samples);
+    std::tuple<std::vector<float>, float, float, float> launch_dense_tree_traversal_kernel(const DenseModel& dense_model, const std::vector<TreeInfer::Sample>& samples);
 
 }
 

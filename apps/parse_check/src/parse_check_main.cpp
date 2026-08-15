@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
         }
         #ifdef BUILD_CUDA
         TreeInfer::DenseModel dense_model(model, max_depth);
-        std::vector<float> dense_device_trav_result {TreeInfer::launch_dense_tree_traversal_kernel(dense_model, samples)};
+        std::vector<float> dense_device_trav_result {std::get<0>(TreeInfer::launch_dense_tree_traversal_kernel(dense_model, samples))};
         compare_device_dense_traversal(dense_device_trav_result, model, samples);
         #endif
     } catch (const std::exception& e) {
