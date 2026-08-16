@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
         std::filesystem::path output_path {argv[4]};
         rapidcsv::Document bench_samples(csv_path.string());
         bool cold_start {true};
-        size_t num_trials {50}; // Subject to change
+        constexpr size_t num_trials {50}; // Subject to change based on trial run
         for (const auto& file : std::filesystem::directory_iterator(json_dir)) {
             auto file_path {file.path()};
             TreeInfer::DenseModel dense_model(TreeInfer::load_model(file_path), max_depth);

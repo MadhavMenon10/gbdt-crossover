@@ -63,5 +63,5 @@ std::tuple<std::vector<float>, float, float, float> TreeInfer::launch_dense_tree
     dense_nodes_d = nullptr;
     feature_values_d = nullptr;
     output_array_d = nullptr;
-    return std::tuple<std::move(std::vector<float>), float, float, float>{output_vector, h2d_time, kernel_time, d2h_time};
+    return std::tuple<std::vector<float>, float, float, float>{std::move(output_vector), h2d_time, kernel_time, d2h_time};
 }   
