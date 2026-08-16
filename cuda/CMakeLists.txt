@@ -1,6 +1,6 @@
 enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
-add_library(cuda STATIC src/tree_traversal_device.cu src/launch_tree_traversal_device.cu)
+add_library(cuda STATIC src/tree_traversal_device.cu src/launch_tree_traversal_device.cu src/device_model.cu)
 #Used to bring in my CUDA Utils file
 include(FetchContent)
 FetchContent_Declare(cuda_utils GIT_REPOSITORY https://github.com/MadhavMenon10/cuda-utils.git GIT_TAG v1.0)
