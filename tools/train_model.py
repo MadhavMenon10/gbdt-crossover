@@ -127,7 +127,7 @@ def main():
     y = aligned.pop("label").astype(int)
     x = aligned
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, shuffle=False)
-    clf = XGBClassifier(objective="multi:softmax", num_class=3, n_estimators=100, max_depth=4, learning_rate=0.1, eval_metric="mlogloss")
+    clf = XGBClassifier(objective="multi:softmax", num_class=3, n_estimators=333, max_depth=6, learning_rate=0.1, eval_metric="mlogloss")
     clf.fit(x_train, y_train)
     booster = clf.get_booster()
     booster.save_model("ground_truth/model.json")
@@ -137,6 +137,8 @@ def main():
     for c in range(margins.shape[1]):
         out[f"margin_{c}"] = margins[:, c]
     out.to_csv("ground_truth/test_cases.csv", index=False)
+    round_counts = [33, 67, 100, 133, 167, 200, 233, 267, 300, 333]
+    generate_sweep_models(clf, round_counts, "ground_truth/sweep_models")
 
 
 if __name__ == "__main__":
