@@ -1,4 +1,5 @@
 design_decisions.txt
 build-local/
+build-remote/
 core/build-local/
 ground_truth/
