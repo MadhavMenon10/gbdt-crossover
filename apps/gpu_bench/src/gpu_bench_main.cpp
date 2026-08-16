@@ -6,6 +6,7 @@
 #include "rapidcsv.h"
 #include "trial_results.hpp"
 #include "utils.hpp"
+#include "device_model.cuh"
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -21,7 +22,7 @@
 
 
 namespace {
-    TreeInfer::TrialResults run_batch_trials_device(const TreeInfer::DenseModel& dense_model, const rapidcsv::Document& sample_pool, size_t batch_size, size_t num_trials) {
+    TreeInfer::TrialResults run_batch_trials_device(const TreeInfer::DeviceModel& device_model, const rapidcsv::Document& sample_pool, size_t batch_size, size_t num_trials) {
         /*
          * Draws a fixed, random subset of size batch_size from the sample pool once before the
          * trial loop starts, using the same subset for every one of the num_trials repeated runs.
@@ -41,13 +42,13 @@ namespace {
         }
         TreeInfer::TrialResults trial_results;
         for (size_t i {}; i < num_trials; ++i) {
-           auto [results, h2d_time, kernel_time, d2h_time] = TreeInfer::launch_dense_tree_traversal_kernel(dense_model, samples);
+           auto [results, h2d_time, kernel_time, d2h_time] = TreeInfer::launch_dense_tree_traversal_kernel(device_model, samples);
            trial_results.add_trial(h2d_time, kernel_time, d2h_time);
         }
         return trial_results;
     }
 
-    std::map<size_t, TreeInfer::TrialResults> coarse_run_device(const TreeInfer::DenseModel& dense_model, const rapidcsv::Document& sample_pool, size_t num_trials) {
+    std::map<size_t, TreeInfer::TrialResults> coarse_run_device(const TreeInfer::DeviceModel& device_model, const rapidcsv::Document& sample_pool, size_t num_trials) {
         /*
          * Uses a geometric batch-size sequence (1, 2, 4, 8, 16, 32, 64, 100) rather than linear
          * spacing. Geometric spacing places a point at every doubling in the low-batch region,
@@ -61,7 +62,7 @@ namespace {
         std::map<size_t, TreeInfer::TrialResults> timing_map;
         std::vector<size_t> coarse_batch_size {1, 2, 4, 8, 16, 32, 64, 100};
         for (auto batch_size : coarse_batch_size) {
-            TreeInfer::TrialResults trial_result {run_batch_trials_device(dense_model, sample_pool, batch_size, num_trials)};
+            TreeInfer::TrialResults trial_result {run_batch_trials_device(device_model, sample_pool, batch_size, num_trials)};
             timing_map[batch_size] = trial_result;
         }
         return timing_map;
@@ -96,7 +97,7 @@ namespace {
         }
         return std::nullopt;
     }
-    void dense_run_device(const TreeInfer::DenseModel& dense_model, const rapidcsv::Document& sample_pool, size_t num_trials, size_t lower_bound, size_t upper_bound, std::map<size_t, TreeInfer::TrialResults>& timing_map) {
+    void dense_run_device(const TreeInfer::DeviceModel& device_model, const rapidcsv::Document& sample_pool, size_t num_trials, size_t lower_bound, size_t upper_bound, std::map<size_t, TreeInfer::TrialResults>& timing_map) {
         /*
          * Runs the dense pass with every integer batch size strictly between lower_bound and
          * upper_bound. The goal is to pin the transition down to the exact
@@ -107,7 +108,7 @@ namespace {
          * time re-measuring two points we already have data for.
          */
         for (size_t batch_size {lower_bound + 1}; batch_size < upper_bound; ++batch_size) { // Avoids boundary points so we don't overwrite at lower_bound and upper_bound
-            TreeInfer::TrialResults trial_result {run_batch_trials_device(dense_model, sample_pool, batch_size, num_trials)};
+            TreeInfer::TrialResults trial_result {run_batch_trials_device(device_model, sample_pool, batch_size, num_trials)};
             timing_map[batch_size] = trial_result;
         }
     }
@@ -131,7 +132,7 @@ namespace {
             }
         }
     }
-    std::map<size_t, TreeInfer::TrialResults> run_sweep(const TreeInfer::DenseModel& dense_model, const rapidcsv::Document& sample_pool, size_t num_trials) {
+    std::map<size_t, TreeInfer::TrialResults> run_sweep(const TreeInfer::DeviceModel& device_model, const rapidcsv::Document& sample_pool, size_t num_trials) {
         /*
          * Orchestrates the full two-pass sweep for one ensemble size: runs the coarse pass across
          * the fixed geometric batch-size list, then uses find_bracket_device to locate where the
@@ -139,11 +140,11 @@ namespace {
          * found, runs the dense pass to pin the transition down to the exact integer batch size.
          * If no bracket is found, logs it and skips the dense pass entirely
          */
-        std::map<size_t, TreeInfer::TrialResults> timing_map {coarse_run_device(dense_model, sample_pool, num_trials)};
+        std::map<size_t, TreeInfer::TrialResults> timing_map {coarse_run_device(device_model, sample_pool, num_trials)};
         std::optional<std::pair<size_t, size_t>> bracket {find_bracket_device(timing_map)};
         if (bracket.has_value()) {
             auto [lower_bound, upper_bound] = bracket.value();
-            dense_run_device(dense_model, sample_pool, num_trials, lower_bound, upper_bound, timing_map);
+            dense_run_device(device_model, sample_pool, num_trials, lower_bound, upper_bound, timing_map);
         } else {
             std::cerr << "No transition found for this ensemble size within the coarse range\n"; // For us to see if this ensemble size didn't work
         }
@@ -168,11 +169,12 @@ int main(int argc, char* argv[]) {
         for (const auto& file : std::filesystem::directory_iterator(json_dir)) {
             auto file_path {file.path()};
             TreeInfer::DenseModel dense_model(TreeInfer::load_model(file_path), max_depth);
+            TreeInfer::DeviceModel device_model(dense_model);
             if (cold_start) {
-                TreeInfer::launch_dense_tree_traversal_kernel(dense_model, std::vector<TreeInfer::Sample>{TreeInfer::Sample{std::vector<float>(dense_model.num_features(), 0.0f)}}); // A toy sample we throw-away to get the cold-start
+                TreeInfer::launch_dense_tree_traversal_kernel(device_model, std::vector<TreeInfer::Sample>{TreeInfer::Sample{std::vector<float>(dense_model.num_features(), 0.0f)}}); // A toy sample we throw-away to get the cold-start
                 cold_start = false;
             }
-            std::map<size_t, TreeInfer::TrialResults> timing_map {run_sweep(dense_model, bench_samples, num_trials)};
+            std::map<size_t, TreeInfer::TrialResults> timing_map {run_sweep(device_model, bench_samples, num_trials)};
             size_t ensemble_size {dense_model.dense_trees().size()};
             write_results(output_path, ensemble_size, timing_map);    
         }

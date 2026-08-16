@@ -1,19 +1,14 @@
 #include "launch_tree_traversal_device.cuh"
 #include "tree_traversal_device.cuh"
+#include "device_model.cuh"
 #include "cuda_utils.cuh"
 
-std::tuple<std::vector<float>, float, float, float> TreeInfer::launch_dense_tree_traversal_kernel(const DenseModel& dense_model, const std::vector<TreeInfer::Sample>& samples) {
+std::tuple<std::vector<float>, float, float, float> TreeInfer::launch_dense_tree_traversal_kernel(const DeviceModel& device_model, const std::vector<TreeInfer::Sample>& samples) {
     size_t num_samples {samples.size()};
-    size_t num_trees {dense_model.dense_trees().size()};
-    size_t nodes_per_tree {dense_model.dense_trees()[0].num_nodes()};
-    std::vector<DenseNode> tree_nodes {};
-    for (const auto& dense_tree : dense_model.dense_trees()) {
-        // Accumulates all the nodes across every dense tree in one vector
-        tree_nodes.insert(tree_nodes.end(), dense_tree.nodes().begin(), dense_tree.nodes().end());
-
-    }
-
     size_t features_per_sample {samples[0].values.size()};
+    size_t nodes_per_tree {device_model.nodes_per_tree()};
+    size_t num_trees {device_model.num_trees()};
+
     std::vector<float> feature_values {};
     for (const auto& sample : samples) {
         // Accumulates all the feature values across every sample in one vector
@@ -24,14 +19,11 @@ std::tuple<std::vector<float>, float, float, float> TreeInfer::launch_dense_tree
     CUDAUtils::check_cuda_error(cudaEventCreate(&h2d_done_event), "Create h2d_done event");
     CUDAUtils::check_cuda_error(cudaEventCreate(&kernel_done_event), "Create kernel_done event");
     CUDAUtils::check_cuda_error(cudaEventCreate(&stop_event), "Create stop event");
-    DenseNode* dense_nodes_d {nullptr};
-    size_t overall_dense_nodes_size {sizeof(DenseNode) * nodes_per_tree * num_trees};
-    CUDAUtils::check_cuda_error(cudaMalloc(reinterpret_cast<void**>(&dense_nodes_d), overall_dense_nodes_size), "Allocate memory for dense_nodes_d array");
+    DenseNode* dense_nodes_d {device_model.dense_nodes_device_ptr()};
     float* feature_values_d {nullptr};
     size_t overall_feature_values_size {sizeof(float) * num_samples * features_per_sample};
     CUDAUtils::check_cuda_error(cudaMalloc(reinterpret_cast<void**>(&feature_values_d), overall_feature_values_size), "Allocate memory for feature_values_d array");
     CUDAUtils::check_cuda_error(cudaEventRecord(start_event, 0), "Record start event");
-    CUDAUtils::check_cuda_error(cudaMemcpy(dense_nodes_d, tree_nodes.data(), overall_dense_nodes_size, cudaMemcpyHostToDevice), "Copy dense_nodes_d array onto device");
     CUDAUtils::check_cuda_error(cudaMemcpy(feature_values_d, feature_values.data(), overall_feature_values_size, cudaMemcpyHostToDevice), "Copy feature_values_d array onto device");
     CUDAUtils::check_cuda_error(cudaEventRecord(h2d_done_event, 0), "Record end event for h2d transfer");
     float* output_array_d {nullptr};
@@ -57,10 +49,8 @@ std::tuple<std::vector<float>, float, float, float> TreeInfer::launch_dense_tree
     CUDAUtils::check_cuda_error(cudaEventDestroy(kernel_done_event), "Destroy kernel_done event");
     CUDAUtils::check_cuda_error(cudaEventDestroy(stop_event), "Destroy stop event");
     // Free pointers
-    CUDAUtils::check_cuda_error(cudaFree(dense_nodes_d), "Free dense_nodes_d");
     CUDAUtils::check_cuda_error(cudaFree(feature_values_d), "Free feature_values_d");
     CUDAUtils::check_cuda_error(cudaFree(output_array_d), "Free output_array_d");
-    dense_nodes_d = nullptr;
     feature_values_d = nullptr;
     output_array_d = nullptr;
     return std::tuple<std::vector<float>, float, float, float>{std::move(output_vector), h2d_time, kernel_time, d2h_time};
