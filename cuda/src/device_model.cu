@@ -23,6 +23,6 @@ TreeInfer::DeviceModel::DeviceModel(const DenseModel& dense_model): num_trees_(d
 }
 
 TreeInfer::DeviceModel::~DeviceModel() {
-    CUDAUtils::check_cuda_error(cudaFree(dense_nodes_d_), "Free dense_nodes_d");
-    dense_nodes_d_ = nullptr;
+    CUDAUtils::check_cuda_error(cudaFree(dense_node_d_), "Free dense_node_d_");
+    dense_node_d_ = nullptr;
 }
