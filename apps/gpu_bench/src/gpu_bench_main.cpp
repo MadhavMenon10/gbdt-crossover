@@ -60,8 +60,8 @@ namespace {
          * smallest ensemble (~99 trees) into clearly compute-dominant territory.
          */
         std::map<size_t, TreeInfer::TrialResults> timing_map;
-        std::vector<size_t> coarse_batch_size {1, 2, 4, 8, 16, 32, 64, 100, 200, 400, 800, 1600, 3200, 6400, 10000};
-        for (auto batch_size : coarse_batch_size) {
+        const std::vector<size_t> coarse_batch_sizeS {1, 2, 4, 8, 16, 32, 64, 100, 200, 400, 800, 1600, 3200, 6400, 10000};
+        for (auto batch_size : coarse_batch_sizes) {
             TreeInfer::TrialResults trial_result {run_batch_trials_device(device_model, sample_pool, batch_size, num_trials)};
             timing_map[batch_size] = trial_result;
         }
@@ -132,7 +132,7 @@ namespace {
             }
         }
     }
-    std::map<size_t, TreeInfer::TrialResults> run_sweep(const TreeInfer::DeviceModel& device_model, const rapidcsv::Document& sample_pool, size_t num_trials) {
+    std::map<size_t, TreeInfer::TrialResults> run_sweep_device(const TreeInfer::DeviceModel& device_model, const rapidcsv::Document& sample_pool, size_t num_trials) {
         /*
          * Orchestrates the full two-pass sweep for one ensemble size: runs the coarse pass across
          * the fixed geometric batch-size list, then uses find_bracket_device to locate where the
@@ -174,7 +174,7 @@ int main(int argc, char* argv[]) {
                 TreeInfer::launch_dense_tree_traversal_kernel(device_model, std::vector<TreeInfer::Sample>{TreeInfer::Sample{std::vector<float>(dense_model.num_features(), 0.0f)}}); // A toy sample we throw-away to get the cold-start
                 cold_start = false;
             }
-            std::map<size_t, TreeInfer::TrialResults> timing_map {run_sweep(device_model, bench_samples, num_trials)};
+            std::map<size_t, TreeInfer::TrialResults> timing_map {run_sweep_device(device_model, bench_samples, num_trials)};
             size_t ensemble_size {dense_model.dense_trees().size()};
             write_results(output_path, ensemble_size, timing_map);    
         }

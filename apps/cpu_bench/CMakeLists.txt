@@ -1,5 +1,6 @@
-add_executable(cpu_bench src/cpu_bench_main.cpp)
+add_executable(cpu_bench src/cpu_bench_main.cpp src/xgb_booster.cpp)
 target_link_libraries(cpu_bench PRIVATE core)
+target_include_directories(cpu_bench PRIVATE include)
 # Used for XGBoost
 include(FetchContent)
 FetchContent_Declare(rapidcsv GIT_REPOSITORY https://github.com/d99kris/rapidcsv.git GIT_TAG v8.97)
@@ -12,6 +13,16 @@ target_include_directories(xgboost_api INTERFACE ${xgboost_c_api_SOURCE_DIR})
 target_link_libraries(cpu_bench PRIVATE xgboost_api)
 # Locates the real compiled library sitting inside the pip-installed package 
 # We can't hardcode a path, since it differs between the M1 and Runpod
-execute_process(COMMAND python3 -c "import xgboost, os; print(os.path.dirname(xgboost.__file__))" OUTPUT_VARIABLE XGBOOST_PYTHON_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND python -c "import xgboost, os; print(os.path.dirname(xgboost.__file__))" OUTPUT_VARIABLE XGBOOST_PYTHON_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 find_library(XGBOOST_LIB NAMES xgboost PATHS "${XGBOOST_PYTHON_DIR}/lib" NO_DEFAULT_PATH)
 target_link_libraries(cpu_bench PRIVATE ${XGBOOST_LIB})
+if(APPLE)
+    target_link_directories(cpu_bench PRIVATE /opt/homebrew/opt/llvm/lib/unwind /opt/homebrew/opt/llvm/lib/c++)
+    target_link_libraries(cpu_bench PRIVATE unwind)
+    target_link_options(cpu_bench PRIVATE -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++)
+endif()
+# Finds the XGBoost lib
+if(NOT EXISTS "${XGBOOST_PYTHON_DIR}/lib/libxgboost.3.dylib")
+    file(CREATE_LINK "${XGBOOST_PYTHON_DIR}/lib/libxgboost.dylib" "${XGBOOST_PYTHON_DIR}/lib/libxgboost.3.dylib" SYMBOLIC)
+endif()
+target_link_options(cpu_bench PRIVATE -Wl,-rpath,${XGBOOST_PYTHON_DIR}/lib)

@@ -1,7 +1,7 @@
 #ifndef XGBBOOSTER_H
 #define XGBBOOSTER_H
 #include <filesystem>
-#include "xgboost/c_api.h"
+#include "c_api.h" // Includes the XGBoost C API
 
 
 class XGBBooster {
