@@ -3,4 +3,4 @@ build-local/
 build-remote/
 core/build-local/
 ground_truth/
-tools/__pycache__
+tools/__pycache__/
