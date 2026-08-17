@@ -60,7 +60,7 @@ namespace {
          * smallest ensemble (~99 trees) into clearly compute-dominant territory.
          */
         std::map<size_t, TreeInfer::TrialResults> timing_map;
-        const std::vector<size_t> coarse_batch_sizeS {1, 2, 4, 8, 16, 32, 64, 100, 200, 400, 800, 1600, 3200, 6400, 10000};
+        const std::vector<size_t> coarse_batch_sizes {1, 2, 4, 8, 16, 32, 64, 100, 200, 400, 800, 1600, 3200, 6400, 10000};
         for (auto batch_size : coarse_batch_sizes) {
             TreeInfer::TrialResults trial_result {run_batch_trials_device(device_model, sample_pool, batch_size, num_trials)};
             timing_map[batch_size] = trial_result;
