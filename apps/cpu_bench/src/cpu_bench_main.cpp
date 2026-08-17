@@ -33,10 +33,16 @@ namespace {
         auto end = std::chrono::steady_clock::now();
         std::chrono::duration<float, std::milli> elapsed_ms = end - start;
         XGDMatrixFree(dmatrix_handle);
-
         return elapsed_ms.count();
     }
     std::vector<float> run_batch_trials_host(const XGBBooster& xgb_booster, const rapidcsv::Document& sample_pool, size_t batch_size, size_t num_trials) {
+        /*
+         * Draws a fixed, random subset of size batch_size from the sample pool once before the
+         * trial loop starts, using the same subset for every one of the num_trials repeated runs.
+         * This is deliberate: repeated trials exist to mitigate timing noise
+         * (OS scheduling jitter, thermal drift, etc.), and that only works if the input is held
+         * constant across trials 
+         */
         std::vector<size_t> indices(sample_pool.GetRowCount()); // Vector of indices we can randomly sample from
         std::iota(indices.begin(), indices.end(), 0); // Fills it in sequentially
         std::mt19937 random_engine {42};
