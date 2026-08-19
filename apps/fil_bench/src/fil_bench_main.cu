@@ -7,6 +7,7 @@
 #include <raft/core/handle.hpp>
 #include <nvforest/handle.hpp>
 #include <tuple>
+#include "cuda_utils.cuh"
 #include <filesystem>
 
 
