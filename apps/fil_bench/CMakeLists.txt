@@ -9,7 +9,7 @@ FetchContent_Declare(rapidcsv GIT_REPOSITORY https://github.com/d99kris/rapidcsv
 FetchContent_MakeAvailable(rapidcsv)
 target_link_libraries(fil_bench PRIVATE rapidcsv)
 target_compile_features(fil_bench PUBLIC cxx_std_23)
-set_target_properties(fil_bench PROPERTIES CUDA_STANDARD 23)
+set_target_properties(fil_bench PROPERTIES CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED ON)
 
 # cuda_utils,
 FetchContent_Declare(cuda_utils GIT_REPOSITORY https://github.com/MadhavMenon10/cuda-utils.git GIT_TAG v1.0)
