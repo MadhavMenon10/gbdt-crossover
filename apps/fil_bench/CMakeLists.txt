@@ -1,4 +1,4 @@
-add_executable(fil_bench src/fil_bench_main.cpp)
+add_executable(fil_bench src/fil_bench_main.cu)
 target_link_libraries(fil_bench PRIVATE core)
 target_include_directories(fil_bench PRIVATE include)
 
