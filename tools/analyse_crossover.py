@@ -52,6 +52,27 @@ def find_crossover(baseline_agg: pd.DataFrame, baseline_col: str, comparison_agg
     return crossovers
 
 
+def aggregate_gpu_p99(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregates GPU Bench results to one p99 total latency per (ensemble_size, batch_size).
+    """
+    df = df.copy()
+    df["gpu_total_ms"] = df["h2d_ms"] + df["kernel_ms"] + df["d2h_ms"]
+    return df.groupby(["ensemble_size", "batch_size"])["gpu_total_ms"].quantile(0.99).reset_index()
+
+
+def aggregate_cpu_p99(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregates CPU Bench results to one p99 total latency per (ensemble_size, batch_size).
+    """
+    """Aggregates CPU results to one p99 latency per (ensemble_size, batch_size)."""
+    return df.groupby(["ensemble_size", "batch_size"])["predict_ms"].quantile(0.99).reset_index()
+
+
+def aggregate_fil_p99(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregates FIL Bench results to one p99 total latency per (ensemble_size, batch_size).
+    """
+    return df.groupby(["ensemble_size", "batch_size", "optimised"])["predict_ms"].quantile(0.99).reset_index().rename(columns={"predict_ms": "fil_ms"})
+
+
 def main():
     gpu_df = load_results("ground_truth/gpu_bench_results.csv")
     cpu_df = load_results("ground_truth/cpu_bench_results.csv")
@@ -61,19 +82,25 @@ def main():
     fil_agg = aggregate_fil(fil_df)
 
     gpu_vs_cpu = find_crossover(cpu_agg, "predict_ms", gpu_agg, "gpu_total_ms")
-    fil_unopt = fil_agg[fil_agg["optimised"] == False].drop(columns="optimised")
+    fil_unopt = fil_agg[fil_agg["optimised"]
+                        == False].drop(columns="optimised")
     gpu_vs_fil = find_crossover(fil_unopt, "fil_ms", gpu_agg, "gpu_total_ms")
     print("=== GPU vs CPU ===")
     for ensemble_size, batch_size in sorted(gpu_vs_cpu.items()):
-        print(f"ensemble_size={ensemble_size}: {'crossover at batch_size=' + str(batch_size) if batch_size else 'no crossover found'}")
+        print(
+            f"ensemble_size={ensemble_size}: {'crossover at batch_size=' + str(batch_size) if batch_size else 'no crossover found'}")
     print("=== GPU vs FIL ===")
     for ensemble_size, batch_size in sorted(gpu_vs_fil.items()):
-        print(f"ensemble_size={ensemble_size}: {'crossover at batch_size=' + str(batch_size) if batch_size else 'no crossover found'}")
-    gpu_loses_to_fil = find_crossover(gpu_agg, "gpu_total_ms", fil_unopt, "fil_ms")
+        print(
+            f"ensemble_size={ensemble_size}: {'crossover at batch_size=' + str(batch_size) if batch_size else 'no crossover found'}")
+    gpu_loses_to_fil = find_crossover(
+        gpu_agg, "gpu_total_ms", fil_unopt, "fil_ms")
 
     print("=== Where GPU stops winning (FIL becomes faster) ===")
     for ensemble_size, batch_size in sorted(gpu_loses_to_fil.items()):
-        print(f"ensemble_size={ensemble_size}: {'FIL overtakes at batch_size=' + str(batch_size) if batch_size else 'GPU wins across entire tested range'}")
+        print(
+            f"ensemble_size={ensemble_size}: {'FIL overtakes at batch_size=' + str(batch_size) if batch_size else 'GPU wins across entire tested range'}")
+
 
 if __name__ == "__main__":
     main()
