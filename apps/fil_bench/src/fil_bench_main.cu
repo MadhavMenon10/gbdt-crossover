@@ -3,9 +3,9 @@
 #include <nvforest/constants.hpp>
 #include <nvforest/treelite_importer.hpp>
 #include <nvforest/detail/index_type.hpp> 
-#include <nvforest/detail/raft_proto/device_type.hpp>
+#include <nvforest/device_type.hpp>
 #include <raft/core/handle.hpp>
-#include <nvforest/detail/raft_proto/handle.hpp>
+#include <nvforest/handle.hpp>
 #include <tuple>
 
 

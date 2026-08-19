@@ -20,7 +20,7 @@ target_link_libraries(fil_bench PRIVATE cuda_utils_fil)
 find_package(Treelite CONFIG REQUIRED)
 find_package(nvforest CONFIG REQUIRED)
 find_package(raft CONFIG REQUIRED)
-target_link_libraries(fil_bench PRIVATE nvforest::nvforest++ treelite::treelite raft::raft)
+target_link_libraries(fil_bench PRIVATE nvforest::nvforest treelite::treelite raft::raft)
 
 find_package(CUDAToolkit REQUIRED)
 target_link_libraries(fil_bench PRIVATE CUDA::cudart)
