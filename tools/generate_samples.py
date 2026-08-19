@@ -32,7 +32,7 @@ def generate_sample_pool(target_pool_size: int, drift: float, volatility: float,
     return pool
 
 def main():
-    pool = generate_sample_pool(target_pool_size=750, drift=0.0002, volatility=0.02, s0=100.0)
+    pool = generate_sample_pool(target_pool_size=15000, drift=0.0002, volatility=0.02, s0=100.0)
     pool.to_csv("ground_truth/bench_samples.csv", index=False)
 
 if __name__ == "__main__":
