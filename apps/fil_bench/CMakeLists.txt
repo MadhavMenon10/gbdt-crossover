@@ -8,6 +8,8 @@ include(FetchContent)
 FetchContent_Declare(rapidcsv GIT_REPOSITORY https://github.com/d99kris/rapidcsv.git GIT_TAG v8.97)
 FetchContent_MakeAvailable(rapidcsv)
 target_link_libraries(fil_bench PRIVATE rapidcsv)
+target_compile_features(fil_bench PUBLIC cxx_std_23)
+set_target_properties(fil_bench PROPERTIES CUDA_STANDARD 23)
 
 # cuda_utils,
 FetchContent_Declare(cuda_utils GIT_REPOSITORY https://github.com/MadhavMenon10/cuda-utils.git GIT_TAG v1.0)
@@ -24,8 +26,10 @@ target_link_libraries(fil_bench PRIVATE nvforest::nvforest treelite::treelite ra
 
 find_package(CUDAToolkit REQUIRED)
 target_link_libraries(fil_bench PRIVATE CUDA::cudart)
+
 if(APPLE)
     target_link_directories(fil_bench PRIVATE /opt/homebrew/opt/llvm/lib/unwind /opt/homebrew/opt/llvm/lib/c++)
     target_link_libraries(fil_bench PRIVATE unwind)
     target_link_options(fil_bench PRIVATE -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++)
+
 endif()
