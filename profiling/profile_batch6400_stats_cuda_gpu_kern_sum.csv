@@ -1,0 +1,2 @@
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+100.0,1238598,1,1238598.0,1238598.0,1238598,1238598,0.0,"TreeInfer::traverse_dense_tree_device(const TreeInfer::DenseNode *, const float *, unsigned long, unsigned long, unsigned long, unsigned long, float *)"
