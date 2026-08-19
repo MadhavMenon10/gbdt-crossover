@@ -1,3 +1,23 @@
+/* ABANDONED: this C++ implementation of fil_bench was set aside in favor of a
+ Python version (apps/fil_bench/fil_bench.py) after extensive debugging of a
+linker error in nvforest's Python-CMake-installed package. The compile
+ step succeeded fully but the final link consistently failed with "undefined reference" errors for
+ nvforest::detail::device_initialization::initialize_device across a wide
+ cross-product of template instantiations (float/double, multiple index-type
+ widths, all three tree_layout values). Confirmed via `nm -D` that the specific
+ missing symbols genuinely exist as weak symbols inside the installed
+ libnvforest.so, ruling out a packaging gap. Also ruled out: link order
+ (already correct), and --as-needed linker behavior dropping the library
+ (explicit --no-as-needed made no difference). No bundled example project or
+ documented issue was found matching this failure. Given nvforest is a very
+ recently released library (mid-2026) with an already-changed primary API
+ (cuml.fil.ForestInference deprecated in favor of nvforest directly), this is
+ most likely an undocumented issue with this specific
+ package/version rather than anything wrong in this file's own code.
+*/
+
+#if 0
+
 #include "cuda_utils.cuh"
 #include "model.hpp"
 #include "model_loader.hpp"
@@ -157,3 +177,4 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+#endif
