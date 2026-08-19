@@ -7,16 +7,17 @@
 #include <raft/core/handle.hpp>
 #include <nvforest/handle.hpp>
 #include <tuple>
+#include <filesystem>
 
 
 namespace {
     auto load_nvforest_model(const std::filesystem::path& model_path) {
         auto treelite_model = treelite::model_loader::LoadXGBoostModelJSON(model_path.c_str(), "{}");
-        return nvforest::import_from_treelite_model(*treelite_model, nvforest::preferred_tree_layout, nvforest::index_type{}, std::nullopt, raft_proto::device_type::gpu);
+        return nvforest::import_from_treelite_model(*treelite_model, nvforest::preferred_tree_layout, nvforest::index_type{}, std::nullopt, nvforest::device_type::gpu);
     }
     //model type is templated since load_nvforest_model's return type is only known via `auto`
     template <typename ModelType>
-    std::tuple<float, float, float> run_trial_fil(ModelType& model, raft_proto::handle_t& handle, const std::vector<float>& feature_values, size_t num_rows, size_t num_cols) {
+    std::tuple<float, float, float> run_trial_fil(ModelType& model, nvforest::handle_t& handle, const std::vector<float>& feature_values, size_t num_rows, size_t num_cols) {
         // Runs a FIL trial and does timing
         float* input_d {nullptr};
         float* output_d {nullptr};
@@ -35,7 +36,7 @@ namespace {
         CUDAUtils::check_cuda_error(cudaMemcpy(input_d, feature_values.data(), input_size, cudaMemcpyHostToDevice), "Copy input to device");
         CUDAUtils::check_cuda_error(cudaEventRecord(h2d_done_event, 0), "Record h2d_done event");
 
-        model.predict(handle, output_d, input_d, num_rows, raft_proto::device_type::gpu, raft_proto::device_type::gpu, nvforest::infer_kind::default_kind);
+        model.predict(handle, output_d, input_d, num_rows, nvforest::device_type::gpu, nvforest::device_type::gpu, nvforest::infer_kind::default_kind);
         CUDAUtils::check_cuda_error(cudaEventRecord(predict_done_event, 0), "Record predict_done event");
 
         std::vector<float> output_vector(num_rows * model.num_outputs());
@@ -57,7 +58,7 @@ namespace {
         return std::tuple<float, float, float>{h2d_ms, kernel_ms, d2h_ms};
     }
     template <typename ModelType>
-    TreeInfer::TrialResults run_batch_trials_fil(ModelType& model, raft_proto::handle_t& handle, const rapidcsv::Document& sample_pool, size_t batch_size, size_t num_trials) {
+    TreeInfer::TrialResults run_batch_trials_fil(ModelType& model, nvforest::handle_t& handle, const rapidcsv::Document& sample_pool, size_t batch_size, size_t num_trials) {
         /*
          * Draws a fixed, random subset of size batch_size from the sample pool once before the
          * trial loop starts, using the same subset for every one of the num_trials repeated runs.
@@ -124,7 +125,7 @@ int main(int argc, char* argv[]) {
         // Constructed once because raft::handle_t manages CUDA streams/library handles
         // meant to be reused, not recreated on every call.
         raft::handle_t raft_handle{};
-        raft_proto::handle_t handle{raft_handle};
+        nvforest::handle_t handle{raft_handle};
         std::vector<size_t> batch_sizes {1, 2, 4, 8, 16, 32, 64, 100, 200, 400, 800, 1600, 3200, 6400, 10000};
         for (const auto& file : std::filesystem::directory_iterator(json_dir)) {
             auto file_path {file.path()};
