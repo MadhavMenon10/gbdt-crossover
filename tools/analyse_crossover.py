@@ -6,7 +6,8 @@ def load_results(path: str) -> pd.DataFrame:
     """
     df = pd.read_csv(path)
     df.columns = df.columns.str.strip()
-    df = df.rename(columns={"h2d (ms)": "h2d_ms", "kernel (ms)": "kernel_ms",  "d2h (ms)": "d2h_ms", "predict (ms)": "predict_ms",})
+    df = df.rename(columns={"h2d (ms)": "h2d_ms", "kernel (ms)": "kernel_ms",
+                   "d2h (ms)": "d2h_ms", "predict (ms)": "predict_ms", })
     return df
 
 
@@ -28,17 +29,25 @@ def aggregate_cpu(df: pd.DataFrame) -> pd.DataFrame:
     return df.groupby(["ensemble_size", "batch_size"])["predict_ms"].median().reset_index()
 
 
-def find_crossover(gpu_agg: pd.DataFrame, cpu_agg: pd.DataFrame) -> dict:
-    """For each ensemble_size, walks batch sizes in ascending order and returns
-    the first batch size where gpu_total_ms < predict_ms.
-    If GPU never beats CPU within the tested batch range, that ensemble_size
-    maps to None.
+def aggregate_fil(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregates FIL results, split by optimised mode.
     """
-    merged = pd.merge(gpu_agg, cpu_agg, on=["ensemble_size", "batch_size"])
+    return df.groupby(["ensemble_size", "batch_size", "optimised"])["predict_ms"].median().reset_index().rename(columns={"predict_ms": "fil_ms"})
+
+
+def find_crossover(baseline_agg: pd.DataFrame, baseline_col: str, comparison_agg: pd.DataFrame, comparison_col: str) -> dict:
+    """Generalized from the original two-argument version. Now takes any two
+    aggregated frames and their value-column names, so this same function
+    serves GPU-vs-CPU and GPU-vs-FIL without duplicating the logic.
+    Returns the first batch_size, per ensemble_size, where comparison_col
+    beats baseline_col.
+    """
+    merged = pd.merge(baseline_agg, comparison_agg, on=[
+                      "ensemble_size", "batch_size"])
     crossovers = {}
     for ensemble_size, group in merged.groupby("ensemble_size"):
         group = group.sort_values("batch_size")
-        found = group[group["gpu_total_ms"] < group["predict_ms"]]
+        found = group[group[comparison_col] < group[baseline_col]]
         crossovers[ensemble_size] = found["batch_size"].iloc[0] if not found.empty else None
     return crossovers
 
@@ -46,17 +55,25 @@ def find_crossover(gpu_agg: pd.DataFrame, cpu_agg: pd.DataFrame) -> dict:
 def main():
     gpu_df = load_results("ground_truth/gpu_bench_results.csv")
     cpu_df = load_results("ground_truth/cpu_bench_results.csv")
-
+    fil_df = load_results("ground_truth/fil_bench_results.csv")
     gpu_agg = aggregate_gpu(gpu_df)
     cpu_agg = aggregate_cpu(cpu_df)
+    fil_agg = aggregate_fil(fil_df)
 
-    crossovers = find_crossover(gpu_agg, cpu_agg)
-    for ensemble_size, batch_size in sorted(crossovers.items()):
-        if batch_size is None:
-            print(f"ensemble_size={ensemble_size}: no crossover found in tested range")
-        else:
-            print(f"ensemble_size={ensemble_size}: crossover at batch_size={batch_size}")
+    gpu_vs_cpu = find_crossover(cpu_agg, "predict_ms", gpu_agg, "gpu_total_ms")
+    fil_unopt = fil_agg[fil_agg["optimised"] == False].drop(columns="optimised")
+    gpu_vs_fil = find_crossover(fil_unopt, "fil_ms", gpu_agg, "gpu_total_ms")
+    print("=== GPU vs CPU ===")
+    for ensemble_size, batch_size in sorted(gpu_vs_cpu.items()):
+        print(f"ensemble_size={ensemble_size}: {'crossover at batch_size=' + str(batch_size) if batch_size else 'no crossover found'}")
+    print("=== GPU vs FIL ===")
+    for ensemble_size, batch_size in sorted(gpu_vs_fil.items()):
+        print(f"ensemble_size={ensemble_size}: {'crossover at batch_size=' + str(batch_size) if batch_size else 'no crossover found'}")
+    gpu_loses_to_fil = find_crossover(gpu_agg, "gpu_total_ms", fil_unopt, "fil_ms")
 
+    print("=== Where GPU stops winning (FIL becomes faster) ===")
+    for ensemble_size, batch_size in sorted(gpu_loses_to_fil.items()):
+        print(f"ensemble_size={ensemble_size}: {'FIL overtakes at batch_size=' + str(batch_size) if batch_size else 'GPU wins across entire tested range'}")
 
 if __name__ == "__main__":
     main()
