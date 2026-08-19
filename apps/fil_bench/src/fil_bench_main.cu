@@ -1,4 +1,8 @@
 #include "cuda_utils.cuh"
+#include "model.hpp"
+#include "model_loader.hpp"
+#include "sample.hpp"
+#include "rapidcsv.h"
 #include "trial_results.hpp"
 #include <treelite/model_loader.h>
 #include <treelite/tree.h>
@@ -10,6 +14,11 @@
 #include <nvforest/handle.hpp>
 #include <tuple>
 #include <filesystem>
+#include <random>
+#include <numeric>
+#include <algorithm>
+#include <map>
+#include <fstream>
 
 
 
