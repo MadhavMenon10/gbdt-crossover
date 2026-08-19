@@ -1,3 +1,4 @@
+enable_language(CUDA)
 add_executable(fil_bench src/fil_bench_main.cu)
 target_link_libraries(fil_bench PRIVATE core)
 target_include_directories(fil_bench PRIVATE include)
@@ -21,7 +22,6 @@ find_package(nvforest CONFIG REQUIRED)
 find_package(raft CONFIG REQUIRED)
 target_link_libraries(fil_bench PRIVATE nvforest::nvforest++ treelite::treelite raft::raft)
 
-enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
 target_link_libraries(fil_bench PRIVATE CUDA::cudart)
 if(APPLE)
