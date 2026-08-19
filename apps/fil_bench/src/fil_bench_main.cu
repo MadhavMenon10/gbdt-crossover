@@ -1,3 +1,5 @@
+#include "cuda_utils.cuh"
+#include "trial_results.hpp"
 #include <treelite/model_loader.h>
 #include <treelite/tree.h>
 #include <nvforest/constants.hpp>
@@ -7,8 +9,8 @@
 #include <raft/core/handle.hpp>
 #include <nvforest/handle.hpp>
 #include <tuple>
-#include "cuda_utils.cuh"
 #include <filesystem>
+
 
 
 namespace {
