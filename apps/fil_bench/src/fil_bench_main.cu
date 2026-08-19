@@ -25,7 +25,7 @@
 namespace {
     auto load_nvforest_model(const std::filesystem::path& model_path) {
         auto treelite_model = treelite::model_loader::LoadXGBoostModelJSON(model_path.c_str(), "{}");
-        return nvforest::import_from_treelite_model(*treelite_model, nvforest::preferred_tree_layout, nvforest::index_type{}, std::nullopt, nvforest::device_type::gpu);
+        return nvforest::import_from_treelite_model(*treelite_model, nvforest::preferred_tree_layout, nvforest::index_type{}, false, nvforest::device_type::gpu);
     }
     //model type is templated since load_nvforest_model's return type is only known via `auto`
     template <typename ModelType>
