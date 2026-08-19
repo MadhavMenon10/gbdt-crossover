@@ -6,3 +6,5 @@ ground_truth/
 tools/__pycache__/
 profiling/*.nsys-rep
 profiling/*.sqlite
+profiling/*.nsys-rep
+profiling/*.sqlite
