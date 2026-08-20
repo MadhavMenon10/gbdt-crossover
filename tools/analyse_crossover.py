@@ -100,7 +100,26 @@ def main():
     for ensemble_size, batch_size in sorted(gpu_loses_to_fil.items()):
         print(
             f"ensemble_size={ensemble_size}: {'FIL overtakes at batch_size=' + str(batch_size) if batch_size else 'GPU wins across entire tested range'}")
+    gpu_agg_p99 = aggregate_gpu_p99(gpu_df)
+    cpu_agg_p99 = aggregate_cpu_p99(cpu_df)
+    fil_agg_p99 = aggregate_fil_p99(fil_df)
+    fil_unopt_p99 = fil_agg_p99[fil_agg_p99["optimised"] == False].drop(columns="optimised")
 
+    gpu_vs_cpu_p99 = find_crossover(cpu_agg_p99, "predict_ms", gpu_agg_p99, "gpu_total_ms")
+    gpu_vs_fil_p99 = find_crossover(fil_unopt_p99, "fil_ms", gpu_agg_p99, "gpu_total_ms")
+    gpu_loses_to_fil_p99 = find_crossover(gpu_agg_p99, "gpu_total_ms", fil_unopt_p99, "fil_ms")
+
+    print("=== [p99] GPU vs CPU ===")
+    for ensemble_size, batch_size in sorted(gpu_vs_cpu_p99.items()):
+        print(f"ensemble_size={ensemble_size}: {'crossover at batch_size=' + str(batch_size) if batch_size else 'no crossover found'}")
+
+    print("=== [p99] GPU vs FIL ===")
+    for ensemble_size, batch_size in sorted(gpu_vs_fil_p99.items()):
+        print(f"ensemble_size={ensemble_size}: {'crossover at batch_size=' + str(batch_size) if batch_size else 'no crossover found'}")
+
+    print("=== [p99] Where GPU stops winning (FIL becomes faster) ===")
+    for ensemble_size, batch_size in sorted(gpu_loses_to_fil_p99.items()):
+        print(f"ensemble_size={ensemble_size}: {'FIL overtakes at batch_size=' + str(batch_size) if batch_size else 'GPU wins across entire tested range'}")
 
 if __name__ == "__main__":
     main()
