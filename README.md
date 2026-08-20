@@ -1,7 +1,7 @@
 # gbdt-crossover
 ## From-Scratch CUDA Inference Engine for Gradient-Boosted Tree Ensembles
 
-A CUDA inference engine for XGBoost gradient-boosted decision tree ensembles, built without using any existing tree-inference library, and a benchmark suite that measures where GPU inference actually beats a well-tuned CPU baseline. The engine parses XGBoost's serialised JSON model into its own in-memory representation, flattens every tree into a complete binary array laid out for the device, traverses the whole ensemble in one kernel, and reports host-to-device transfer, kernel execution, and device-to-host transfer as three separate numbers instead of one blended wall-clock figure.
+A CUDA inference engine for XGBoost gradient-boosted decision tree ensembles, built without using any existing tree-inference library, and a benchmark suite that measures where GPU inference actually a well-tuned CPU baseline. The engine parses XGBoost's serialised JSON model into its own in-memory representation, flattens every tree into a complete binary array laid out for the device, traverses the whole ensemble in one kernel, and reports host-to-device transfer, kernel execution, and device-to-host transfer as three separate numbers instead of one blended wall-clock figure.
 
 What the project is really after is the measurement rather than the kernel. Published GPU tree-inference benchmarks usually compare against scikit-learn, which is not a serious CPU baseline. Here the comparison is XGBoost's own native C API predict path, run on the same physical machine as the GPU, plus NVIDIA's RAPIDS Forest Inference Library as a third reference point.
 
