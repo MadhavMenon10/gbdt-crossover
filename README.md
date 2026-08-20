@@ -48,7 +48,7 @@ Raw per-trial results are checked in:
 **There is no crossover in the tested range. The GPU is already ahead at batch size 1, against both baselines, for every one of the ten ensemble sizes.**
 
 ```
-=== GPU vs CPU ===                        === GPU vs FIL ===
+=== GPU vs CPU ===                              === GPU vs FIL ===
 ensemble_size=99:  crossover at batch_size=1    ensemble_size=99:  crossover at batch_size=1
 ensemble_size=201: crossover at batch_size=1    ensemble_size=201: crossover at batch_size=1
 ensemble_size=300: crossover at batch_size=1    ensemble_size=300: crossover at batch_size=1
@@ -219,10 +219,10 @@ From the repository root:
 python tools/train_model.py        # writes ground_truth/model.json, test_cases.csv, sweep_models/
 python tools/generate_samples.py   # writes ground_truth/bench_samples.csv
 
-# correctness gate, no GPU required (build with -DBUILD_CUDA=ON to also check the kernel)
+# Correctness check that the kernel works as intended
 ./build-local/apps/parse_check/parse_check ground_truth/model.json ground_truth/test_cases.csv 6
 
-# the three benchmarks
+# The three benchmarks
 ./build-remote/apps/gpu_bench/gpu_bench ground_truth/sweep_models ground_truth/bench_samples.csv 6 ground_truth/gpu_bench_results.csv
 ./build-remote/apps/cpu_bench/cpu_bench ground_truth/sweep_models ground_truth/bench_samples.csv ground_truth/cpu_bench_results.csv
 python apps/fil_bench/fil_bench.py ground_truth/sweep_models ground_truth/bench_samples.csv ground_truth/fil_bench_results.csv
